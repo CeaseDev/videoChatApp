@@ -25,7 +25,7 @@ export default function Room() {
         userVideo.current!.srcObject = stream;
         userStream.current = stream;
 
-        webSocketRef.current = new WebSocket(`ws://localhost:8000/join?roomID=${roomID}`);
+        webSocketRef.current = new WebSocket(`ws://ec2-3-109-124-231.ap-south-1.compute.amazonaws.com:8000/join?roomID=${roomID}`);
 
         webSocketRef.current.addEventListener("open", () => {
           webSocketRef.current!.send(JSON.stringify({ join: true }));
