@@ -25,7 +25,7 @@ export default function Room() {
         userVideo.current!.srcObject = stream;
         userStream.current = stream;
 
-        webSocketRef.current = new WebSocket(`ws://myvidchat.duckdns.org:8000/join?roomID=${roomID}`);
+        webSocketRef.current = new WebSocket(`ws://myvidchat.duckdns.org/join?roomID=${roomID}`);
 
         webSocketRef.current.addEventListener("open", () => {
           webSocketRef.current!.send(JSON.stringify({ join: true }));

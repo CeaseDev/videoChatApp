@@ -12,7 +12,7 @@ export default function CreateRoom() {
     try {
       setLoading(true) ; 
 
-      const response = await axios.get("https://myvidchat.duckdns.org:8000/create") ; 
+      const response = await axios.get("https://myvidchat.duckdns.org/create") ; 
       setRoomID(response.data.room_id) ;
       setLoading(false) ;
       console.log(roomID) ;
