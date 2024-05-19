@@ -12,7 +12,7 @@ export default function CreateRoom() {
     try {
       setLoading(true) ; 
 
-      const response = await axios.get("http://ec2-3-109-124-231.ap-south-1.compute.amazonaws.com:8000/create") ; 
+      const response = await axios.get("https://ec2-3-109-124-231.ap-south-1.compute.amazonaws.com:8000/create") ; 
       setRoomID(response.data.room_id) ;
       setLoading(false) ;
       console.log(roomID) ;
