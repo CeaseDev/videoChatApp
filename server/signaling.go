@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
-	"fmt"
+
 )
 
 // AllRooms is the global hashmap for the server
@@ -54,7 +54,6 @@ func broadcaster() {
 				err := client.Conn.WriteJSON(msg.Message)
 
 				if err != nil {
-					log.Fatal(err)
 					client.Conn.Close()
 				}
 			}
