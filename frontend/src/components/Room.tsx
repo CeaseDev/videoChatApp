@@ -1,13 +1,18 @@
-import { useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 
 export default function Room() {
   const { roomID } = useParams();
+  const navigate = useNavigate();
   const userVideo = useRef<HTMLVideoElement | null>(null);
   const userStream = useRef<MediaStream | null>(null);
   const partnerVideo = useRef<HTMLVideoElement | null>(null);
   const peerRef = useRef<RTCPeerConnection | null>(null);
   const webSocketRef = useRef<WebSocket | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
   const openCamera = async () => {
     try {
@@ -25,7 +30,7 @@ export default function Room() {
         userVideo.current!.srcObject = stream;
         userStream.current = stream;
 
-        webSocketRef.current = new WebSocket(`wss://myvidchat.duckdns.org/join?roomID=${roomID}`);
+        webSocketRef.current = new WebSocket(`ws://localhost:8000/join?roomID=${roomID}`);
 
         webSocketRef.current.addEventListener("open", () => {
           webSocketRef.current!.send(JSON.stringify({ join: true }));
@@ -131,10 +136,146 @@ export default function Room() {
     partnerVideo.current!.srcObject = e.streams[0];
   };
 
+  const toggleMute = () => {
+    if (userStream.current) {
+      userStream.current.getAudioTracks().forEach(track => {
+        track.enabled = !track.enabled;
+      });
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const toggleVideo = () => {
+    if (userStream.current) {
+      userStream.current.getVideoTracks().forEach(track => {
+        track.enabled = !track.enabled;
+      });
+      setIsVideoOff(!isVideoOff);
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (partnerVideo.current) {
+      partnerVideo.current.volume = newVolume;
+    }
+  };
+
+  const toggleVolumeSlider = () => {
+    setShowVolumeSlider(!showVolumeSlider);
+  };
+
+  const leaveRoom = () => {
+    if (userStream.current) {
+      userStream.current.getTracks().forEach(track => track.stop());
+    }
+    if (webSocketRef.current) {
+      webSocketRef.current.close();
+    }
+    if (peerRef.current) {
+      peerRef.current.close();
+    }
+    navigate('/');
+  };
+
   return (
-    <div className="flex justify-center items-center mt-[30vh] gap-20">
-      <video ref={userVideo} className="w-[30rem] h-[30rem] border-2 border-red-300 rounded-lg" autoPlay muted />
-      <video ref={partnerVideo} className="w-[30rem] h-[30rem] border-2 border-red-300 rounded-lg" autoPlay />
+    <div className="min-h-screen bg-gray-900 p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <div className="text-white">
+            <h1 className="text-2xl font-bold">Room: {roomID}</h1>
+          </div>
+          <button
+            onClick={leaveRoom}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition duration-200"
+          >
+            Leave Room
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="relative">
+            <video
+              ref={userVideo}
+              className="w-full h-[400px] object-cover rounded-lg shadow-lg"
+              autoPlay
+              muted
+            />
+            <div className="absolute bottom-4 left-4 flex space-x-4">
+              <button
+                onClick={toggleMute}
+                className={`p-3 rounded-full ${isMuted ? 'bg-red-600' : 'bg-gray-800'} text-white hover:bg-opacity-80 transition duration-200`}
+              >
+                {isMuted ? (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={toggleVideo}
+                className={`p-3 rounded-full ${isVideoOff ? 'bg-red-600' : 'bg-gray-800'} text-white hover:bg-opacity-80 transition duration-200`}
+              >
+                {isVideoOff ? (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                )}
+              </button>
+              <div className="relative">
+                <button
+                  onClick={toggleVolumeSlider}
+                  className="p-3 rounded-full bg-gray-800 text-white hover:bg-opacity-80 transition duration-200"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  </svg>
+                </button>
+                {showVolumeSlider && (
+                  <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-gray-800 p-4 rounded-lg shadow-lg">
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={volume}
+                      onChange={handleVolumeChange}
+                      className="w-32 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="text-white text-center mt-2">
+                      {Math.round(volume * 100)}%
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+              You
+            </div>
+          </div>
+
+          <div className="relative">
+            <video
+              ref={partnerVideo}
+              className="w-full h-[400px] object-cover rounded-lg shadow-lg"
+              autoPlay
+            />
+            <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+              Partner
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
